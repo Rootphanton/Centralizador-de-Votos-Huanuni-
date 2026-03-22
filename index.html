@@ -249,6 +249,7 @@
 <div id="mainContent">
   <div class="top-bar">
     <div class="mode-badge" id="modeBadge"></div>
+    <button class="action-btn" onclick="guardarManual()" id="saveBtn" style="display:none; background:rgba(212,175,55,0.2); border-color:#d4af37; color:#d4af37;">💾 GUARDAR Y PUBLICAR</button>
     <button class="action-btn logout" onclick="logout()" id="logoutBtn" style="display: none;">CERRAR SESIÓN</button>
     <button class="action-btn" onclick="showLoginModal()" id="loginBtn">INGRESAR COMO ADMIN</button>
   </div>
@@ -519,6 +520,7 @@ function updateModeDisplay() {
     modeBadge.style.color = '#22c55e';
     logoutBtn.style.display = 'block';
     loginBtn.style.display = 'none';
+    document.getElementById('saveBtn').style.display = 'block';
   } else {
     modeBadge.textContent = 'MODO VISUALIZACIÓN - SOLO LECTURA';
     modeBadge.style.background = 'rgba(59,130,246,0.2)';
@@ -526,6 +528,7 @@ function updateModeDisplay() {
     modeBadge.style.color = '#3b82f6';
     logoutBtn.style.display = 'none';
     loginBtn.style.display = 'block';
+    document.getElementById('saveBtn').style.display = 'none';
   }
 }
 
@@ -565,14 +568,66 @@ function generateInputs(tipo, idx) {
   return html;
 }
 
+let isLoading = false;
+let haycambiosPendientes = false;
+
 function handleChange(input) {
   if (currentMode !== 'admin') return;
-  saveInput(input);
+  if (isLoading) return;
+  haycambiosPendientes = true;
+  // Marcar el botón de guardar para avisar que hay cambios
+  const saveBtn = document.getElementById('saveBtn');
+  saveBtn.textContent = '💾 GUARDAR Y PUBLICAR ●';
+  saveBtn.style.background = 'rgba(212,175,55,0.4)';
   calcularTotales();
   updateCharts();
+}
+
+async function guardarManual() {
+  const saveBtn = document.getElementById('saveBtn');
   const indicator = document.getElementById('savingIndicator');
+
+  saveBtn.textContent = '⏳ GUARDANDO...';
+  saveBtn.disabled = true;
   indicator.style.display = 'block';
-  setTimeout(() => indicator.style.display = 'none', 1500);
+
+  const inputs = document.querySelectorAll('input[type="number"]');
+  let errores = 0;
+
+  for (const input of inputs) {
+    const key = `${input.dataset.tipo}_${input.dataset.idx}_${input.dataset.col}`;
+    const value = parseInt(input.value) || 0;
+    try {
+      const url = `${SCRIPT_URL}?action=save&key=${encodeURIComponent(key)}&value=${value}`;
+      const response = await fetch(url);
+      const result = await response.json();
+      if (!result.success) errores++;
+    } catch (e) {
+      errores++;
+    }
+  }
+
+  indicator.style.display = 'none';
+  saveBtn.disabled = false;
+  haycambiosPendientes = false;
+
+  if (errores === 0) {
+    saveBtn.textContent = '✅ PUBLICADO';
+    saveBtn.style.background = 'rgba(34,197,94,0.3)';
+    saveBtn.style.borderColor = '#22c55e';
+    saveBtn.style.color = '#22c55e';
+    setTimeout(() => {
+      saveBtn.textContent = '💾 GUARDAR Y PUBLICAR';
+      saveBtn.style.background = 'rgba(212,175,55,0.2)';
+      saveBtn.style.borderColor = '#d4af37';
+      saveBtn.style.color = '#d4af37';
+    }, 3000);
+  } else {
+    saveBtn.textContent = '❌ ERROR - REINTENTAR';
+    saveBtn.style.background = 'rgba(239,68,68,0.3)';
+    saveBtn.style.borderColor = '#ef4444';
+    saveBtn.style.color = '#ef4444';
+  }
 }
 
 async function saveInput(input) {
@@ -618,7 +673,7 @@ async function saveData() {
 }
 
 async function loadData() {
-
+  isLoading = true;
   try {
     const url = `${SCRIPT_URL}?action=load&t=${Date.now()}`;
     const response = await fetch(url);
@@ -628,15 +683,23 @@ async function loadData() {
       document.querySelectorAll('input[type="number"]').forEach(input => {
         const key = `${input.dataset.tipo}_${input.dataset.idx}_${input.dataset.col}`;
         if (result.data[key] !== undefined) {
-          input.value = result.data[key];
+          const nuevoValor = String(result.data[key]);
+          // Solo actualizar si el valor realmente cambió
+          if (input.value !== nuevoValor) {
+            input.value = nuevoValor;
+          }
         }
       });
+      calcularTotales();
+      updateCharts();
       console.log('✓ Datos cargados desde Google Sheets');
     } else {
       console.warn('No se pudieron cargar datos:', result.error || 'sin error');
     }
   } catch (error) {
     console.error('Error cargando datos:', error);
+  } finally {
+    isLoading = false;
   }
 }
 
