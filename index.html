@@ -807,31 +807,46 @@ function initCharts() {
 function updateCharts() {
   if (!window.totalesGlobales) return;
 
-  const coloresPartidos = ['#064e3b', '#78350f', '#dc2626', '#fb923c', '#ef4444', '#f97316', '#d946ef'];
+  // Color fijo por partido
+  const colorPorPartido = {
+    'IO':     '#064e3b',
+    'AUPP':   '#78350f',
+    'JACHA':  '#dc2626',
+    'PP':     '#fb923c',
+    'FRI':    '#ef4444',
+    'PATRIA': '#f97316',
+    'SOMOS':  '#d946ef'
+  };
+
+  // Alcalde: IO, AUPP, JACHA, PP, FRI, PATRIA, SOMOS
   const nombresAlcalde = ['IO (J. Mamani)', 'A-UPP (E. Colque)', "JACH'A (R. Ardaya)", 'PP (A. Calani)', 'FRI (W. Mamani)', 'PATRIA (V. Loayza)', 'SOMOS (J. Crespo)'];
+  const coloresAlcalde  = ['IO','AUPP','JACHA','PP','FRI','PATRIA','SOMOS'].map(p => colorPorPartido[p]);
+
+  // Concejal: AUPP, IO, PP, JACHA, FRI, SOMOS, PATRIA
   const nombresConcejal = ['A-UPP (J. Mamani)', 'IO (C. Alegre)', 'PP (M. Mitma)', "JACH'A (I. Huanca)", 'FRI (M. Alvaro)', 'SOMOS (B. Ramirez)', 'PATRIA (E. Aserico)'];
+  const coloresConcejal  = ['AUPP','IO','PP','JACHA','FRI','SOMOS','PATRIA'].map(p => colorPorPartido[p]);
 
   chartAlcaldePie.data = {
     labels: nombresAlcalde,
-    datasets: [{ data: window.totalesGlobales.alcalde.slice(0, 7), backgroundColor: coloresPartidos }]
+    datasets: [{ data: window.totalesGlobales.alcalde.slice(0, 7), backgroundColor: coloresAlcalde }]
   };
   chartAlcaldePie.update();
 
   chartConcejalPie.data = {
     labels: nombresConcejal,
-    datasets: [{ data: window.totalesGlobales.concejal.slice(0, 7), backgroundColor: coloresPartidos }]
+    datasets: [{ data: window.totalesGlobales.concejal.slice(0, 7), backgroundColor: coloresConcejal }]
   };
   chartConcejalPie.update();
 
   chartAlcaldeBar.data = {
     labels: nombresAlcalde,
-    datasets: [{ data: window.totalesGlobales.alcalde.slice(0, 7), backgroundColor: coloresPartidos }]
+    datasets: [{ data: window.totalesGlobales.alcalde.slice(0, 7), backgroundColor: coloresAlcalde }]
   };
   chartAlcaldeBar.update();
 
   chartConcejalBar.data = {
     labels: nombresConcejal,
-    datasets: [{ data: window.totalesGlobales.concejal.slice(0, 7), backgroundColor: coloresPartidos }]
+    datasets: [{ data: window.totalesGlobales.concejal.slice(0, 7), backgroundColor: coloresConcejal }]
   };
   chartConcejalBar.update();
 }
