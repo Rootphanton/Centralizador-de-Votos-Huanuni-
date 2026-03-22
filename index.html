@@ -591,12 +591,14 @@ async function guardarManual() {
   saveBtn.disabled = true;
   indicator.style.display = 'block';
 
+  // Solo guardar inputs con valor mayor a 0
   const inputs = document.querySelectorAll('input[type="number"]');
+  const inputsConValor = Array.from(inputs).filter(i => parseInt(i.value) > 0);
   let errores = 0;
 
-  for (const input of inputs) {
+  for (const input of inputsConValor) {
     const key = `${input.dataset.tipo}_${input.dataset.idx}_${input.dataset.col}`;
-    const value = parseInt(input.value) || 0;
+    const value = parseInt(input.value);
     try {
       const url = `${SCRIPT_URL}?action=save&key=${encodeURIComponent(key)}&value=${value}`;
       const response = await fetch(url);
@@ -834,7 +836,12 @@ function updateCharts() {
   chartConcejalBar.update();
 }
 
-setInterval(() => { loadData(); calcularTotales(); updateCharts(); }, 5000);
+setInterval(() => { 
+  // Solo recargar datos si el admin NO tiene cambios pendientes
+  if (!haycambiosPendientes) {
+    loadData();
+  }
+}, 5000);
 document.addEventListener('keypress', (e) => { if (e.key === 'Enter' && document.getElementById('loginOverlay').style.display !== 'none') login(); });
 document.addEventListener('DOMContentLoaded', initSystem);
 
