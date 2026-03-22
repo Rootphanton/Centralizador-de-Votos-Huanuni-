@@ -454,7 +454,7 @@ const ADMIN_PASS = 'jacha';
 let currentMode = 'observer';
 
 // URL de Google Apps Script configurada
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwx42Xb5Np86sV56RO9WF2q7c5RErjwwVDKr1fUXyS2Bj-AaRKhzfhKwXgM_D--9xkA/exec';
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwR2AkNN7bEMpFSWrWiV6_UlbterNovzxRndhy7ozXs3st-5NiZd17vafduCBKeN9TC/exec';
 
 const recintos = [
   ['DISPERSA', 'VILUYO', 3],
@@ -567,44 +567,60 @@ function generateInputs(tipo, idx) {
 
 function handleChange(input) {
   if (currentMode !== 'admin') return;
-  saveData();
+  saveInput(input);
   calcularTotales();
   updateCharts();
   const indicator = document.getElementById('savingIndicator');
   indicator.style.display = 'block';
-  setTimeout(() => indicator.style.display = 'none', 800);
+  setTimeout(() => indicator.style.display = 'none', 1500);
+}
+
+async function saveInput(input) {
+  const key = `${input.dataset.tipo}_${input.dataset.idx}_${input.dataset.col}`;
+  const value = parseInt(input.value) || 0;
+
+  try {
+    const url = `${SCRIPT_URL}?action=save&key=${encodeURIComponent(key)}&value=${value}`;
+    const response = await fetch(url);
+    const result = await response.json();
+    if (result.success) {
+      console.log(`✓ Guardado: ${key} = ${value}`);
+    } else {
+      console.error('❌ Error al guardar:', result.error);
+    }
+  } catch (error) {
+    console.error('❌ Error de red:', error);
+  }
 }
 
 async function saveData() {
-  if (SCRIPT_URL === 'PEGA_AQUI_TU_URL_DE_APPS_SCRIPT') {
-    alert('⚠️ ERROR: Debes configurar la URL de Google Apps Script en el código');
-    return;
-  }
-
+  // Recopilar todos los inputs y construir un objeto key:value
   const inputs = document.querySelectorAll('input[type="number"]');
-  
-  // Guardar cada input en Google Sheets
-  for (const input of inputs) {
+  const pairs = {};
+  inputs.forEach(input => {
     const key = `${input.dataset.tipo}_${input.dataset.idx}_${input.dataset.col}`;
-    const value = parseInt(input.value) || 0;
-    
-    try {
-      const url = `${SCRIPT_URL}?action=save&key=${encodeURIComponent(key)}&value=${value}`;
-      await fetch(url, { mode: 'no-cors' });
-    } catch (error) {
-      console.error('Error guardando:', error);
+    pairs[key] = parseInt(input.value) || 0;
+  });
+
+  try {
+    // Envío correcto SIN mode:'no-cors' para poder leer la respuesta
+    const url = `${SCRIPT_URL}?action=save&keys=${encodeURIComponent(JSON.stringify(pairs))}`;
+    const response = await fetch(url);
+    const result = await response.json();
+    if (result.success) {
+      console.log('✓ Guardado correctamente en Google Sheets');
+    } else {
+      console.error('❌ Error al guardar:', result.error);
     }
+  } catch (error) {
+    console.error('❌ Error de red al guardar:', error);
   }
 }
 
 async function loadData() {
-  if (SCRIPT_URL === 'PEGA_AQUI_TU_URL_DE_APPS_SCRIPT') {
-    console.log('URL de Apps Script no configurada');
-    return;
-  }
 
   try {
-    const url = `${SCRIPT_URL}?action=load`;
+    const url = `${SCRIPT_URL}?action=load&t=${Date.now()}`;
     const response = await fetch(url);
     const result = await response.json();
     
@@ -615,6 +631,9 @@ async function loadData() {
           input.value = result.data[key];
         }
       });
+      console.log('✓ Datos cargados desde Google Sheets');
+    } else {
+      console.warn('No se pudieron cargar datos:', result.error || 'sin error');
     }
   } catch (error) {
     console.error('Error cargando datos:', error);
