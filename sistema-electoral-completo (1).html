@@ -1,0 +1,738 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistema Electoral Huanuni 2026 - Cómputo Oficial</title>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@400;600;700;800&family=Barlow:wght@400;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --gold: #d4af37; --gold-lt: #f5d96b; --gold-dk: #8b6914;
+      --navy: #0a1628; --card-bg: rgba(10,22,60,0.95);
+    }
+    body {
+      font-family: 'Barlow', sans-serif; min-height: 100vh; color: #f1f5f9;
+      background: var(--navy); overflow-x: hidden;
+    }
+    .bg-layer {
+      position: fixed; inset: 0; z-index: -2;
+      background: radial-gradient(ellipse at 15% 0%, rgba(212,175,55,0.15) 0%, transparent 45%),
+                  radial-gradient(ellipse at 85% 100%, rgba(212,175,55,0.11) 0%, transparent 40%), var(--navy);
+    }
+
+    /* ========== LOGIN ========== */
+    .login-overlay {
+      position: fixed; inset: 0; z-index: 9999;
+      background: linear-gradient(135deg, rgba(10,22,60,0.98) 0%, rgba(15,32,80,0.95) 100%);
+      display: none; align-items: center; justify-content: center;
+      backdrop-filter: blur(10px);
+    }
+    .login-box {
+      background: linear-gradient(135deg, rgba(212,175,55,0.1) 0%, rgba(10,22,60,0.9) 100%);
+      border: 2px solid var(--gold); border-radius: 20px; padding: 40px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.8), inset 0 1px 0 rgba(212,175,55,0.3);
+      max-width: 450px; width: 90%; text-align: center; position: relative;
+    }
+    .login-box h2 {
+      font-family: 'Bebas Neue', sans-serif; font-size: 2rem; letter-spacing: 3px;
+      background: linear-gradient(180deg, var(--gold-lt), var(--gold));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      margin-bottom: 25px;
+    }
+    .login-input {
+      width: 100%; background: rgba(0,0,0,0.5); border: 2px solid rgba(212,175,55,0.3);
+      color: #fff; padding: 12px; border-radius: 10px; margin-bottom: 15px;
+      font-size: 1rem; font-family: 'Barlow Condensed', sans-serif;
+    }
+    .login-input:focus { outline: none; border-color: var(--gold); box-shadow: 0 0 20px rgba(212,175,55,0.3); }
+    .login-btn {
+      width: 100%; background: linear-gradient(135deg, var(--gold-dk), var(--gold));
+      color: var(--navy); border: none; padding: 12px; border-radius: 10px;
+      font-size: 1.1rem; font-weight: 700; cursor: pointer;
+      font-family: 'Bebas Neue', sans-serif; letter-spacing: 2px;
+      box-shadow: 0 5px 20px rgba(212,175,55,0.4); transition: all 0.3s;
+    }
+    .login-btn:hover { transform: translateY(-3px); box-shadow: 0 10px 30px rgba(212,175,55,0.6); }
+    .login-error {
+      color: #ef4444; background: rgba(239,68,68,0.1); border: 1px solid #ef4444;
+      padding: 10px; border-radius: 5px; margin-top: 15px; display: none; font-size: 0.9rem;
+    }
+    .close-modal {
+      position: absolute; top: 10px; right: 15px; background: transparent;
+      border: none; color: rgba(212,175,55,0.7); font-size: 2rem;
+      cursor: pointer; line-height: 1;
+    }
+
+    /* ========== HEADER ========== */
+    .top-bar {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 15px 20px; flex-wrap: wrap; gap: 10px;
+    }
+    .mode-badge {
+      background: rgba(59,130,246,0.2); border: 1px solid #3b82f6;
+      color: #3b82f6; padding: 8px 20px; border-radius: 20px;
+      font-family: 'Barlow Condensed', sans-serif; font-weight: 700;
+      font-size: 0.85rem; letter-spacing: 1px;
+    }
+    .action-btn {
+      background: rgba(34,197,94,0.2); border: 1px solid #22c55e;
+      color: #22c55e; padding: 8px 20px; border-radius: 20px;
+      font-family: 'Barlow Condensed', sans-serif; font-weight: 700;
+      cursor: pointer; font-size: 0.85rem; letter-spacing: 1px;
+      transition: all 0.3s; border-style: solid;
+    }
+    .action-btn:hover { background: rgba(34,197,94,0.4); transform: translateY(-2px); }
+    .action-btn.logout { background: rgba(239,68,68,0.2); border-color: #ef4444; color: #ef4444; }
+
+    header {
+      text-align: center; padding: 20px 20px 15px; border-bottom: 2px solid rgba(212,175,55,0.2);
+      margin-bottom: 25px;
+    }
+    h1 {
+      font-family: 'Bebas Neue', sans-serif; font-size: clamp(1.5rem, 4vw, 3rem);
+      letter-spacing: 3px;
+      background: linear-gradient(180deg, var(--gold-lt), var(--gold));
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    }
+    .header-subtitle {
+      letter-spacing: 3px; color: var(--gold); font-weight: 700;
+      font-family: 'Barlow Condensed', sans-serif; font-size: clamp(0.9rem, 2vw, 1.2rem);
+      margin-top: 8px;
+    }
+
+    /* ========== STATS ========== */
+    .stats-container {
+      max-width: 1400px; margin: 0 auto 25px; padding: 0 15px;
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px;
+    }
+    .stat-card {
+      background: var(--card-bg); border: 1px solid rgba(212,175,55,0.3);
+      border-radius: 12px; padding: 15px; text-align: center;
+      box-shadow: 0 5px 20px rgba(0,0,0,0.5);
+    }
+    .stat-label {
+      font-family: 'Barlow Condensed', sans-serif; font-size: 0.75rem;
+      color: rgba(212,175,55,0.7); letter-spacing: 1px; margin-bottom: 6px;
+    }
+    .stat-number {
+      font-family: 'Bebas Neue', sans-serif; font-size: clamp(1.5rem, 3vw, 2.2rem);
+      color: var(--gold-lt); letter-spacing: 1px;
+    }
+    .stat-sublabel { font-size: 0.7rem; color: rgba(255,255,255,0.4); margin-top: 4px; }
+
+    /* ========== CHARTS ========== */
+    .charts-container {
+      max-width: 1400px; margin: 0 auto 30px; padding: 0 15px;
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px;
+    }
+    .chart-card {
+      background: var(--card-bg); border: 1px solid rgba(212,175,55,0.3);
+      border-radius: 15px; padding: 20px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+    }
+    .chart-title {
+      font-family: 'Bebas Neue', sans-serif; font-size: 1.3rem;
+      color: var(--gold-lt); text-align: center; margin-bottom: 15px;
+      letter-spacing: 2px;
+    }
+    .chart-wrapper { position: relative; height: 300px; }
+
+    /* ========== TABLE ========== */
+    .table-container { max-width: 1600px; margin: 0 auto 40px; padding: 0 15px; }
+    .table-wrapper {
+      background: var(--card-bg); border: 1px solid rgba(212,175,55,0.3);
+      border-radius: 15px; padding: 15px; overflow-x: auto;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.7);
+    }
+    table { width: 100%; border-collapse: collapse; min-width: 1200px; }
+    th, td { border: 1px solid rgba(212,175,55,0.15); padding: 8px; text-align: center; font-size: 0.85rem; min-width: 70px; }
+    
+    .th-main {
+      background: #0f172a; color: var(--gold-lt);
+      font-family: 'Bebas Neue'; font-size: 1rem; letter-spacing: 1px;
+    }
+    .th-mesa { background: #1e293b; color: var(--gold); font-weight: 700; font-size: 0.9rem; }
+    .bg-io { background: #064e3b; }
+    .bg-aupp { background: #78350f; }
+    .bg-jacha { background: #dc2626; }
+    .bg-pp { background: #fb923c; color: #000; font-weight: 700; }
+    .bg-fri { background: #ef4444; }
+    .bg-patria { background: #f97316; }
+    .bg-somos { background: #d946ef; }
+    .bg-especial { background: #334155; font-size: 0.75rem; }
+
+    .cand-name {
+      display: block; font-size: 0.65rem; font-family: 'Barlow';
+      font-weight: 400; margin-top: 2px; opacity: 0.9;
+    }
+
+    input {
+      width: 100%; background: rgba(0,0,0,0.3); border: 1px solid transparent;
+      color: #fff; text-align: center; padding: 8px 4px; border-radius: 4px;
+      font-weight: 600; font-size: 0.95rem;
+    }
+    input:focus {
+      outline: none; border-color: var(--gold);
+      background: rgba(212,175,55,0.1);
+      box-shadow: 0 0 10px rgba(212,175,55,0.3);
+    }
+    input:disabled { background: rgba(0,0,0,0.5); cursor: not-allowed; opacity: 0.6; }
+
+    .total-row {
+      background: rgba(0,0,0,0.6); font-family: 'Barlow Condensed';
+      font-weight: 700; color: var(--gold-lt);
+    }
+    .votos-num { font-size: 1.2rem; display: block; font-family: 'Bebas Neue'; }
+    .votos-pct {
+      font-size: 0.75rem; color: #10b981; border-top: 1px solid rgba(212,175,55,0.2);
+      margin-top: 4px; padding-top: 4px;
+    }
+
+    .area-label {
+      font-weight: 700; background: rgba(212,175,55,0.1);
+      color: var(--gold-lt); font-family: 'Barlow Condensed'; letter-spacing: 1px;
+    }
+
+    footer {
+      text-align: center; padding: 25px 20px; color: rgba(212,175,55,0.5);
+      font-size: 0.8rem; border-top: 1px solid rgba(212,175,55,0.1);
+      font-family: 'Barlow Condensed', sans-serif; line-height: 1.6;
+    }
+
+    .saving-indicator {
+      position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      background: rgba(10,22,60,0.95); border: 2px solid var(--gold);
+      padding: 25px 40px; border-radius: 15px; z-index: 10000;
+      font-family: 'Bebas Neue', sans-serif; font-size: 1.3rem;
+      color: var(--gold-lt); letter-spacing: 2px; display: none;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+    }
+
+    @media (max-width: 768px) {
+      .top-bar { justify-content: center; }
+      h1 { font-size: 1.5rem; }
+      .stat-number { font-size: 1.8rem; }
+      .charts-container { grid-template-columns: 1fr; }
+      .chart-wrapper { height: 250px; }
+      .table-wrapper { padding: 10px; }
+      input { padding: 5px; font-size: 0.85rem; }
+      th, td { padding: 6px; font-size: 0.75rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="bg-layer"></div>
+
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-box">
+    <button class="close-modal" onclick="closeLoginModal()">&times;</button>
+    <h2>ACCESO ADMINISTRATIVO</h2>
+    <p style="color: rgba(212,175,55,0.7); margin-bottom: 25px; font-family: 'Barlow Condensed'; letter-spacing: 1px; font-size: 0.9rem;">
+      TRIBUNAL ELECTORAL HUANUNI 2026
+    </p>
+    <input type="text" id="username" class="login-input" placeholder="Usuario" autocomplete="off">
+    <input type="password" id="password" class="login-input" placeholder="Contraseña" autocomplete="off">
+    <button class="login-btn" onclick="login()">INGRESAR</button>
+    <div class="login-error" id="loginError">Usuario o contraseña incorrectos</div>
+    <p style="color: rgba(255,255,255,0.3); margin-top: 15px; font-size: 0.8rem;">
+      Solo el administrador puede editar datos<br>
+      Todos pueden visualizar en tiempo real
+    </p>
+  </div>
+</div>
+
+<div class="saving-indicator" id="savingIndicator">Guardando cambios...</div>
+
+<div id="mainContent">
+  <div class="top-bar">
+    <div class="mode-badge" id="modeBadge"></div>
+    <button class="action-btn logout" onclick="logout()" id="logoutBtn" style="display: none;">CERRAR SESIÓN</button>
+    <button class="action-btn" onclick="showLoginModal()" id="loginBtn">INGRESAR COMO ADMIN</button>
+  </div>
+
+  <header>
+    <h1>SISTEMA DE CÓMPUTO OFICIAL</h1>
+    <p class="header-subtitle">ELECCIONES MUNICIPALES HUANUNI 2026</p>
+  </header>
+
+  <!-- PANEL DE INSTRUCCIONES PARA TÉCNICOS -->
+  <div style="max-width: 1200px; margin: 0 auto 25px; padding: 0 15px;">
+    <div style="text-align: center; margin-bottom: 15px;">
+      <button onclick="toggleInstrucciones()" style="background: linear-gradient(135deg, #22c55e, #16a34a); color: #000; border: none; padding: 12px 30px; border-radius: 25px; font-family: 'Bebas Neue', sans-serif; font-size: 1.1rem; letter-spacing: 2px; cursor: pointer; box-shadow: 0 5px 20px rgba(34,197,94,0.4); transition: all 0.3s;">
+        INSTRUCCIONES PARA TÉCNICOS
+      </button>
+    </div>
+    <div id="panelInstrucciones" style="background: linear-gradient(135deg, rgba(34,197,94,0.15) 0%, rgba(10,22,60,0.9) 100%); border: 2px solid #22c55e; border-radius: 15px; padding: 20px; display: none;">
+      <h3 style="font-family: 'Bebas Neue', sans-serif; font-size: 1.4rem; color: #22c55e; text-align: center; margin-bottom: 15px; letter-spacing: 2px;">
+        CÓMO USAR ESTE SISTEMA
+      </h3>
+      <div style="font-family: 'Barlow Condensed', sans-serif; font-size: 0.95rem; line-height: 1.8; color: #f1f5f9;">
+        <p style="margin-bottom: 10px;"><strong style="color: #22c55e;">DATOS DEL SISTEMA:</strong></p>
+        <ul style="margin-left: 20px; margin-bottom: 15px;">
+          <li><strong>13,973 votantes habilitados</strong> en todo el municipio</li>
+          <li><strong>63 mesas electorales</strong> en total</li>
+          <li><strong>12 recintos electorales</strong> (algunos con varias mesas)</li>
+        </ul>
+
+        <p style="margin-bottom: 10px;"><strong style="color: #fbbf24;">Cómo funciona la tabla:</strong></p>
+        <ul style="margin-left: 20px; margin-bottom: 15px;">
+          <li>Cada <strong>FILA</strong> = 1 RECINTO (que puede tener 1 o más mesas)</li>
+          <li>La columna "N° Mesas" indica cuántas mesas tiene ese recinto</li>
+          <li>Debes <strong>SUMAR los votos de TODAS las mesas del recinto</strong> antes de ingresarlos</li>
+        </ul>
+
+        <p style="margin-bottom: 10px;"><strong style="color: #fbbf24;">Ejemplo práctico:</strong></p>
+        <div style="background: rgba(0,0,0,0.3); padding: 12px; border-radius: 8px; border-left: 3px solid #fbbf24; margin-bottom: 15px;">
+          <p style="margin-bottom: 8px;"><strong>Recinto: AYACUCHO</strong> tiene <strong>14 mesas</strong></p>
+          <p style="margin-left: 20px; font-size: 0.9rem; opacity: 0.9; margin-bottom: 5px;">
+            Si el candidato IO obtuvo:<br>
+            Mesa 1: 15 votos | Mesa 2: 12 votos | Mesa 3: 18 votos<br>
+            Mesa 4: 20 votos | ... | Mesa 14: 19 votos
+          </p>
+          <p style="margin-left: 20px; font-size: 1rem; color: #22c55e; font-weight: 700;">
+            En la casilla de IO para AYACUCHO ingresas: <strong>EL TOTAL DE LAS 14 MESAS</strong>
+          </p>
+        </div>
+
+        <div style="background: rgba(239,68,68,0.2); padding: 12px; border-radius: 8px; border-left: 3px solid #ef4444; margin-bottom: 10px;">
+          <p style="margin-bottom: 5px;"><strong style="color: #ef4444;">ERROR COMÚN:</strong></p>
+          <p style="margin-left: 20px; font-size: 0.9rem;">No ingresar votos de cada mesa por separado (no hay una fila por mesa)</p>
+        </div>
+
+        <div style="background: rgba(34,197,94,0.2); padding: 12px; border-radius: 8px; border-left: 3px solid #22c55e;">
+          <p style="margin-bottom: 5px;"><strong style="color: #22c55e;">CORRECTO:</strong></p>
+          <p style="margin-left: 20px; font-size: 0.9rem;">Suma todos los votos del candidato en todas las mesas del recinto e ingresa el TOTAL</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="stats-container">
+    <div class="stat-card">
+      <div class="stat-label">VOTANTES HABILITADOS</div>
+      <div class="stat-number">13,973</div>
+      <div class="stat-sublabel">Padrón electoral oficial</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">TOTAL DE MESAS</div>
+      <div class="stat-number">63</div>
+      <div class="stat-sublabel">Distribuidas en 12 recintos</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">VOTOS CONTABILIZADOS</div>
+      <div class="stat-number" id="totalVotosCount">0</div>
+      <div class="stat-sublabel">Actualización en tiempo real</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">PARTICIPACIÓN</div>
+      <div class="stat-number" id="participacionPct">0%</div>
+      <div class="stat-sublabel">Del padrón electoral</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">RECINTOS COMPUTADOS</div>
+      <div class="stat-number" id="recintosComputados">0/12</div>
+      <div class="stat-sublabel">Progreso del cómputo</div>
+    </div>
+  </div>
+
+  <!-- GRÁFICOS ALCALDE -->
+  <div style="max-width: 1400px; margin: 0 auto 15px; padding: 0 15px;">
+    <h2 style="font-family: 'Bebas Neue', sans-serif; font-size: 1.8rem; color: var(--gold-lt); text-align: center; letter-spacing: 3px; margin-bottom: 20px; border-bottom: 2px solid rgba(212,175,55,0.3); padding-bottom: 10px;">
+      RESULTADOS - ALCALDE
+    </h2>
+  </div>
+  <div class="charts-container">
+    <div class="chart-card">
+      <div class="chart-title">DISTRIBUCIÓN DE VOTOS</div>
+      <div class="chart-wrapper"><canvas id="chartAlcaldePie"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">COMPARATIVA</div>
+      <div class="chart-wrapper"><canvas id="chartAlcaldeBar"></canvas></div>
+    </div>
+  </div>
+
+  <!-- GRÁFICOS CONCEJALES -->
+  <div style="max-width: 1400px; margin: 30px auto 15px; padding: 0 15px;">
+    <h2 style="font-family: 'Bebas Neue', sans-serif; font-size: 1.8rem; color: var(--gold-lt); text-align: center; letter-spacing: 3px; margin-bottom: 20px; border-bottom: 2px solid rgba(212,175,55,0.3); padding-bottom: 10px;">
+      RESULTADOS - CONCEJALES
+    </h2>
+  </div>
+  <div class="charts-container">
+    <div class="chart-card">
+      <div class="chart-title">DISTRIBUCIÓN DE VOTOS</div>
+      <div class="chart-wrapper"><canvas id="chartConcejalPie"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">COMPARATIVA</div>
+      <div class="chart-wrapper"><canvas id="chartConcejalBar"></canvas></div>
+    </div>
+  </div>
+
+  <div class="table-container">
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th colspan="3" class="th-main">UBICACIÓN DEL RECINTO</th>
+            <th colspan="9" class="th-main" style="background: #1e293b; border-left: 4px solid var(--gold);">ELECCIÓN DE ALCALDE (TOTAL POR RECINTO)</th>
+            <th colspan="9" class="th-main" style="background: #0f172a; border-left: 4px solid var(--gold);">ELECCIÓN DE CONCEJALES (TOTAL POR RECINTO)</th>
+          </tr>
+          <tr style="background: rgba(212,175,55,0.1);">
+            <th colspan="21" style="padding: 12px; font-family: 'Barlow Condensed', sans-serif; font-size: 0.85rem; color: var(--gold-lt); letter-spacing: 1px;">
+              IMPORTANTE: Cada fila representa el TOTAL de votos de TODAS las mesas del recinto (no votos por mesa individual)
+            </th>
+          </tr>
+          <tr>
+            <th class="th-main">Área</th>
+            <th class="th-main">Nombre del Recinto</th>
+            <th class="th-mesa">N° Mesas<br><span style="font-size: 0.65rem; opacity: 0.7;">(del recinto)</span></th>
+            <th class="bg-io">IO<span class="cand-name">J. Mamani</span></th>
+            <th class="bg-aupp">A-UPP<span class="cand-name">E. Colque</span></th>
+            <th class="bg-jacha">JACH'A<span class="cand-name">R. Ardaya</span></th>
+            <th class="bg-pp">PP<span class="cand-name">A. Calani</span></th>
+            <th class="bg-fri">FRI<span class="cand-name">W. Mamani</span></th>
+            <th class="bg-patria">PATRIA<span class="cand-name">V. Loayza</span></th>
+            <th class="bg-somos">SOMOS<span class="cand-name">J. Crespo</span></th>
+            <th class="bg-especial">NULOS</th>
+            <th class="bg-especial">BLANCOS</th>
+            <th class="bg-aupp">A-UPP<span class="cand-name">J. Mamani</span></th>
+            <th class="bg-io">IO<span class="cand-name">C. Alegre</span></th>
+            <th class="bg-pp">PP<span class="cand-name">M. Mitma</span></th>
+            <th class="bg-jacha">JACH'A<span class="cand-name">I. Huanca</span></th>
+            <th class="bg-fri">FRI<span class="cand-name">M. Alvaro</span></th>
+            <th class="bg-somos">SOMOS<span class="cand-name">B. Ramirez</span></th>
+            <th class="bg-patria">PATRIA<span class="cand-name">E. Aserico</span></th>
+            <th class="bg-especial">NULOS</th>
+            <th class="bg-especial">BLANCOS</th>
+          </tr>
+        </thead>
+        <tbody id="votosBody"></tbody>
+        <tfoot>
+          <tr class="total-row">
+            <td colspan="3">TOTALES GENERALES</td>
+            <td id="total-alc-io"><span class="votos-num">0</span><span class="votos-pct">0%</span></td>
+            <td id="total-alc-aupp"><span class="votos-num">0</span><span class="votos-pct">0%</span></td>
+            <td id="total-alc-jacha"><span class="votos-num">0</span><span class="votos-pct">0%</span></td>
+            <td id="total-alc-pp"><span class="votos-num">0</span><span class="votos-pct">0%</span></td>
+            <td id="total-alc-fri"><span class="votos-num">0</span><span class="votos-pct">0%</span></td>
+            <td id="total-alc-patria"><span class="votos-num">0</span><span class="votos-pct">0%</span></td>
+            <td id="total-alc-somos"><span class="votos-num">0</span><span class="votos-pct">0%</span></td>
+            <td id="total-alc-nulos"><span class="votos-num">0</span><span class="votos-pct">—</span></td>
+            <td id="total-alc-blancos"><span class="votos-num">0</span><span class="votos-pct">—</span></td>
+            <td id="total-con-aupp"><span class="votos-num">0</span><span class="votos-pct">0%</span></td>
+            <td id="total-con-io"><span class="votos-num">0</span><span class="votos-pct">0%</span></td>
+            <td id="total-con-pp"><span class="votos-num">0</span><span class="votos-pct">0%</span></td>
+            <td id="total-con-jacha"><span class="votos-num">0</span><span class="votos-pct">0%</span></td>
+            <td id="total-con-fri"><span class="votos-num">0</span><span class="votos-pct">0%</span></td>
+            <td id="total-con-somos"><span class="votos-num">0</span><span class="votos-pct">0%</span></td>
+            <td id="total-con-patria"><span class="votos-num">0</span><span class="votos-pct">0%</span></td>
+            <td id="total-con-nulos"><span class="votos-num">0</span><span class="votos-pct">—</span></td>
+            <td id="total-con-blancos"><span class="votos-num">0</span><span class="votos-pct">—</span></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+
+  <footer>
+    Sistema Electoral Oficial - Municipio de Huanuni - Oruro, Bolivia<br>
+    Tribunal Electoral Municipal - Actualización en Tiempo Real<br>
+    © 2026 Todos los derechos reservados
+  </footer>
+</div>
+
+<script>
+const ADMIN_USER = 'irra2026';
+const ADMIN_PASS = 'jacha';
+let currentMode = 'observer';
+
+const recintos = [
+  ['DISPERSA', 'VILUYO', 3],
+  ['DISPERSA', 'TARUCAMARCA', 1],
+  ['DISPERSA', 'TAYAQUIRA', 2],
+  ['DISPERSA', 'BOMBO', 1],
+  ['DISPERSA', 'HUAYLLATIRI', 1],
+  ['DISPERSA', 'CATARICAGUA', 1],
+  ['DISPERSA', 'MOROCOCALA', 1],
+  ['CONCENTRADA', 'FRANZ TAMAYO', 13],
+  ['CONCENTRADA', 'AYACUCHO', 14],
+  ['CONCENTRADA', 'EDUARDO AVAROA', 18],
+  ['CONCENTRADA', 'VENEZUELA', 3],
+  ['CONCENTRADA', '12 DE ABRIL', 5]
+];
+
+// Total mesas: 3+1+2+1+1+1+1+13+14+18+3+5 = 63 mesas ✓
+
+let chartAlcaldePie, chartConcejalPie, chartAlcaldeBar, chartConcejalBar;
+
+function login() {
+  const user = document.getElementById('username').value;
+  const pass = document.getElementById('password').value;
+  const errorDiv = document.getElementById('loginError');
+
+  if (user === ADMIN_USER && pass === ADMIN_PASS) {
+    currentMode = 'admin';
+    document.getElementById('loginOverlay').style.display = 'none';
+    updateModeDisplay();
+    renderTable();
+  } else {
+    errorDiv.style.display = 'block';
+    document.getElementById('username').value = '';
+    document.getElementById('password').value = '';
+    setTimeout(() => errorDiv.style.display = 'none', 3000);
+  }
+}
+
+function showLoginModal() { document.getElementById('loginOverlay').style.display = 'flex'; }
+function closeLoginModal() {
+  document.getElementById('loginOverlay').style.display = 'none';
+  document.getElementById('username').value = '';
+  document.getElementById('password').value = '';
+  document.getElementById('loginError').style.display = 'none';
+}
+
+function logout() {
+  currentMode = 'observer';
+  updateModeDisplay();
+  renderTable();
+}
+
+function updateModeDisplay() {
+  const modeBadge = document.getElementById('modeBadge');
+  const logoutBtn = document.getElementById('logoutBtn');
+  const loginBtn = document.getElementById('loginBtn');
+
+  if (currentMode === 'admin') {
+    modeBadge.textContent = 'MODO ADMINISTRADOR - EDICIÓN ACTIVA';
+    modeBadge.style.background = 'rgba(34,197,94,0.2)';
+    modeBadge.style.borderColor = '#22c55e';
+    modeBadge.style.color = '#22c55e';
+    logoutBtn.style.display = 'block';
+    loginBtn.style.display = 'none';
+  } else {
+    modeBadge.textContent = 'MODO VISUALIZACIÓN - SOLO LECTURA';
+    modeBadge.style.background = 'rgba(59,130,246,0.2)';
+    modeBadge.style.borderColor = '#3b82f6';
+    modeBadge.style.color = '#3b82f6';
+    logoutBtn.style.display = 'none';
+    loginBtn.style.display = 'block';
+  }
+}
+
+function initSystem() {
+  updateModeDisplay();
+  renderTable();
+  loadData();
+  calcularTotales();
+  initCharts();
+  updateCharts();
+}
+
+function renderTable() {
+  const tbody = document.getElementById('votosBody');
+  let html = '';
+
+  recintos.forEach((r, idx) => {
+    html += `
+    <tr>
+      <td class="area-label">${r[0]}</td>
+      <td style="text-align: left; font-weight: 600;">${r[1]}</td>
+      <td style="font-weight: 700; color: var(--gold);">${r[2]}</td>
+      ${generateInputs('alc', idx)}
+      ${generateInputs('con', idx)}
+    </tr>`;
+  });
+
+  tbody.innerHTML = html;
+}
+
+function generateInputs(tipo, idx) {
+  const disabled = currentMode !== 'admin' ? 'disabled' : '';
+  let html = '';
+  for (let i = 0; i < 9; i++) {
+    html += `<td><input type="number" min="0" value="0" data-tipo="${tipo}" data-idx="${idx}" data-col="${i}" ${disabled} onchange="handleChange(this)"></td>`;
+  }
+  return html;
+}
+
+function handleChange(input) {
+  if (currentMode !== 'admin') return;
+  saveData();
+  calcularTotales();
+  updateCharts();
+  const indicator = document.getElementById('savingIndicator');
+  indicator.style.display = 'block';
+  setTimeout(() => indicator.style.display = 'none', 800);
+}
+
+function saveData() {
+  const data = {};
+  document.querySelectorAll('input[type="number"]').forEach(input => {
+    const key = `${input.dataset.tipo}_${input.dataset.idx}_${input.dataset.col}`;
+    data[key] = parseInt(input.value) || 0;
+  });
+  localStorage.setItem('votosHuanuni2026', JSON.stringify(data));
+}
+
+function loadData() {
+  const saved = localStorage.getItem('votosHuanuni2026');
+  if (!saved) return;
+  const data = JSON.parse(saved);
+  document.querySelectorAll('input[type="number"]').forEach(input => {
+    const key = `${input.dataset.tipo}_${input.dataset.idx}_${input.dataset.col}`;
+    if (data[key] !== undefined) {
+      input.value = data[key];
+    }
+  });
+}
+
+function calcularTotales() {
+  const totalesAlc = Array(9).fill(0);
+  const totalesCon = Array(9).fill(0);
+
+  document.querySelectorAll('input[data-tipo="alc"]').forEach(input => {
+    totalesAlc[parseInt(input.dataset.col)] += parseInt(input.value) || 0;
+  });
+
+  document.querySelectorAll('input[data-tipo="con"]').forEach(input => {
+    totalesCon[parseInt(input.dataset.col)] += parseInt(input.value) || 0;
+  });
+
+  const alcaldeIds = ['io', 'aupp', 'jacha', 'pp', 'fri', 'patria', 'somos', 'nulos', 'blancos'];
+  const concejalIds = ['aupp', 'io', 'pp', 'jacha', 'fri', 'somos', 'patria', 'nulos', 'blancos'];
+
+  const totalAlcalde = totalesAlc.slice(0, 7).reduce((a, b) => a + b, 0);
+  const totalConcejal = totalesCon.slice(0, 7).reduce((a, b) => a + b, 0);
+
+  alcaldeIds.forEach((id, i) => {
+    const cell = document.getElementById(`total-alc-${id}`);
+    const votos = totalesAlc[i];
+    const pct = totalAlcalde > 0 && i < 7 ? ((votos / totalAlcalde) * 100).toFixed(2) : 0;
+    cell.innerHTML = `<span class="votos-num">${votos.toLocaleString()}</span><span class="votos-pct">${i < 7 ? pct + '%' : '—'}</span>`;
+  });
+
+  concejalIds.forEach((id, i) => {
+    const cell = document.getElementById(`total-con-${id}`);
+    const votos = totalesCon[i];
+    const pct = totalConcejal > 0 && i < 7 ? ((votos / totalConcejal) * 100).toFixed(2) : 0;
+    cell.innerHTML = `<span class="votos-num">${votos.toLocaleString()}</span><span class="votos-pct">${i < 7 ? pct + '%' : '—'}</span>`;
+  });
+
+  const totalVotos = totalAlcalde + totalesAlc[7] + totalesAlc[8];
+  document.getElementById('totalVotosCount').textContent = totalVotos.toLocaleString();
+  document.getElementById('participacionPct').textContent = ((totalVotos / 13973) * 100).toFixed(2) + '%';
+  
+  let recintosConVotos = 0;
+  recintos.forEach((r, idx) => {
+    for (let i = 0; i < 9; i++) {
+      const input = document.querySelector(`input[data-tipo="alc"][data-idx="${idx}"][data-col="${i}"]`);
+      if (parseInt(input.value) > 0) { recintosConVotos++; break; }
+    }
+  });
+  document.getElementById('recintosComputados').textContent = `${recintosConVotos}/${recintos.length}`;
+
+  window.totalesGlobales = { alcalde: totalesAlc, concejal: totalesCon };
+}
+
+// ===== GRÁFICOS =====
+function initCharts() {
+  const configPie = {
+    type: 'pie',
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { color: '#f1f5f9', font: { size: 10 } } },
+        tooltip: { 
+          callbacks: { 
+            label: (ctx) => {
+              const total = ctx.dataset.data.reduce((a,b)=>a+b,0);
+              const pct = total > 0 ? ((ctx.parsed/total)*100).toFixed(1) : 0;
+              return `${ctx.label}: ${ctx.parsed} votos (${pct}%)`;
+            }
+          } 
+        }
+      }
+    }
+  };
+
+  const configBar = {
+    type: 'bar',
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      indexAxis: 'y',
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: (ctx) => `${ctx.parsed.x} votos` } }
+      },
+      scales: {
+        x: { 
+          ticks: { color: '#f1f5f9', font: { size: 10 } }, 
+          grid: { color: 'rgba(212,175,55,0.1)' } 
+        },
+        y: { 
+          ticks: { color: '#f1f5f9', font: { size: 10 } }, 
+          grid: { color: 'rgba(212,175,55,0.1)' } 
+        }
+      }
+    }
+  };
+
+  chartAlcaldePie = new Chart(document.getElementById('chartAlcaldePie'), configPie);
+  chartConcejalPie = new Chart(document.getElementById('chartConcejalPie'), configPie);
+  chartAlcaldeBar = new Chart(document.getElementById('chartAlcaldeBar'), configBar);
+  chartConcejalBar = new Chart(document.getElementById('chartConcejalBar'), configBar);
+}
+
+function updateCharts() {
+  if (!window.totalesGlobales) return;
+
+  const coloresPartidos = ['#064e3b', '#78350f', '#dc2626', '#fb923c', '#ef4444', '#f97316', '#d946ef'];
+  const nombresAlcalde = ['IO (J. Mamani)', 'A-UPP (E. Colque)', "JACH'A (R. Ardaya)", 'PP (A. Calani)', 'FRI (W. Mamani)', 'PATRIA (V. Loayza)', 'SOMOS (J. Crespo)'];
+  const nombresConcejal = ['A-UPP (J. Mamani)', 'IO (C. Alegre)', 'PP (M. Mitma)', "JACH'A (I. Huanca)", 'FRI (M. Alvaro)', 'SOMOS (B. Ramirez)', 'PATRIA (E. Aserico)'];
+
+  chartAlcaldePie.data = {
+    labels: nombresAlcalde,
+    datasets: [{ data: window.totalesGlobales.alcalde.slice(0, 7), backgroundColor: coloresPartidos }]
+  };
+  chartAlcaldePie.update();
+
+  chartConcejalPie.data = {
+    labels: nombresConcejal,
+    datasets: [{ data: window.totalesGlobales.concejal.slice(0, 7), backgroundColor: coloresPartidos }]
+  };
+  chartConcejalPie.update();
+
+  chartAlcaldeBar.data = {
+    labels: nombresAlcalde,
+    datasets: [{ data: window.totalesGlobales.alcalde.slice(0, 7), backgroundColor: coloresPartidos }]
+  };
+  chartAlcaldeBar.update();
+
+  chartConcejalBar.data = {
+    labels: nombresConcejal,
+    datasets: [{ data: window.totalesGlobales.concejal.slice(0, 7), backgroundColor: coloresPartidos }]
+  };
+  chartConcejalBar.update();
+}
+
+setInterval(() => { loadData(); calcularTotales(); updateCharts(); }, 5000);
+document.addEventListener('keypress', (e) => { if (e.key === 'Enter' && document.getElementById('loginOverlay').style.display !== 'none') login(); });
+document.addEventListener('DOMContentLoaded', initSystem);
+
+function toggleInstrucciones() {
+  const panel = document.getElementById('panelInstrucciones');
+  if (panel.style.display === 'none') {
+    panel.style.display = 'block';
+  } else {
+    panel.style.display = 'none';
+  }
+}
+</script>
+</body>
+</html>
