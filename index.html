@@ -256,6 +256,9 @@
   <header>
     <h1>SISTEMA DE CÓMPUTO OFICIAL</h1>
     <p class="header-subtitle">ELECCIONES MUNICIPALES HUANUNI 2026</p>
+    <div style="margin-top: 15px; font-family: 'Barlow Condensed', sans-serif; font-size: 1.1rem; color: rgba(212,175,55,0.8); letter-spacing: 2px;">
+      <span id="fechaHora"></span>
+    </div>
   </header>
 
   <!-- PANEL DE INSTRUCCIONES PARA TÉCNICOS -->
@@ -450,6 +453,9 @@ const ADMIN_USER = 'irra2026';
 const ADMIN_PASS = 'jacha';
 let currentMode = 'observer';
 
+// URL de Google Apps Script configurada
+const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwx42Xb5Np86sV56RO9WF2q7c5RErjwwVDKr1fUXyS2Bj-AaRKhzfhKwXgM_D--9xkA/exec';
+
 const recintos = [
   ['DISPERSA', 'VILUYO', 3],
   ['DISPERSA', 'TARUCAMARCA', 1],
@@ -569,25 +575,50 @@ function handleChange(input) {
   setTimeout(() => indicator.style.display = 'none', 800);
 }
 
-function saveData() {
-  const data = {};
-  document.querySelectorAll('input[type="number"]').forEach(input => {
+async function saveData() {
+  if (SCRIPT_URL === 'PEGA_AQUI_TU_URL_DE_APPS_SCRIPT') {
+    alert('⚠️ ERROR: Debes configurar la URL de Google Apps Script en el código');
+    return;
+  }
+
+  const inputs = document.querySelectorAll('input[type="number"]');
+  
+  // Guardar cada input en Google Sheets
+  for (const input of inputs) {
     const key = `${input.dataset.tipo}_${input.dataset.idx}_${input.dataset.col}`;
-    data[key] = parseInt(input.value) || 0;
-  });
-  localStorage.setItem('votosHuanuni2026', JSON.stringify(data));
+    const value = parseInt(input.value) || 0;
+    
+    try {
+      const url = `${SCRIPT_URL}?action=save&key=${encodeURIComponent(key)}&value=${value}`;
+      await fetch(url, { mode: 'no-cors' });
+    } catch (error) {
+      console.error('Error guardando:', error);
+    }
+  }
 }
 
-function loadData() {
-  const saved = localStorage.getItem('votosHuanuni2026');
-  if (!saved) return;
-  const data = JSON.parse(saved);
-  document.querySelectorAll('input[type="number"]').forEach(input => {
-    const key = `${input.dataset.tipo}_${input.dataset.idx}_${input.dataset.col}`;
-    if (data[key] !== undefined) {
-      input.value = data[key];
+async function loadData() {
+  if (SCRIPT_URL === 'PEGA_AQUI_TU_URL_DE_APPS_SCRIPT') {
+    console.log('URL de Apps Script no configurada');
+    return;
+  }
+
+  try {
+    const url = `${SCRIPT_URL}?action=load`;
+    const response = await fetch(url);
+    const result = await response.json();
+    
+    if (result.success && result.data) {
+      document.querySelectorAll('input[type="number"]').forEach(input => {
+        const key = `${input.dataset.tipo}_${input.dataset.idx}_${input.dataset.col}`;
+        if (result.data[key] !== undefined) {
+          input.value = result.data[key];
+        }
+      });
     }
-  });
+  } catch (error) {
+    console.error('Error cargando datos:', error);
+  }
 }
 
 function calcularTotales() {
@@ -733,6 +764,31 @@ function toggleInstrucciones() {
     panel.style.display = 'none';
   }
 }
+
+// Actualizar fecha y hora en tiempo real
+function actualizarFechaHora() {
+  const ahora = new Date();
+  
+  const diasSemana = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+  const meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+  
+  const diaSemana = diasSemana[ahora.getDay()];
+  const dia = ahora.getDate();
+  const mes = meses[ahora.getMonth()];
+  const año = ahora.getFullYear();
+  
+  const horas = String(ahora.getHours()).padStart(2, '0');
+  const minutos = String(ahora.getMinutes()).padStart(2, '0');
+  const segundos = String(ahora.getSeconds()).padStart(2, '0');
+  
+  const fechaHoraTexto = `${diaSemana}, ${dia} de ${mes} de ${año} - ${horas}:${minutos}:${segundos}`;
+  
+  document.getElementById('fechaHora').textContent = fechaHoraTexto;
+}
+
+// Actualizar cada segundo
+setInterval(actualizarFechaHora, 1000);
+actualizarFechaHora(); // Llamar inmediatamente al cargar
 </script>
 </body>
 </html>
